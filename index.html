@@ -1,0 +1,1263 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nexus Admin Dashboard</title>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- JSPDF for Report Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Google Fonts -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Toastify for Notifications -->
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css"
+    />
+    <script
+      type="text/javascript"
+      src="https://cdn.jsdelivr.net/npm/toastify-js"
+    ></script>
+    <!-- Three.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="api-config.js"></script>
+    <link rel="stylesheet" href="style.css?v=6.0" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>" />
+  </head>
+
+  <body>
+    <!-- 3D BACKGROUND CANVAS -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- Floating Background Shapes (Decor) -->
+    <div
+      class="floating-shape"
+      style="
+        top: 10%;
+        left: 5%;
+        width: 100px;
+        height: 100px;
+        background: radial-gradient(
+          circle,
+          rgba(99, 102, 241, 0.2) 0%,
+          transparent 70%
+        );
+        border-radius: 50%;
+      "
+    ></div>
+    <div
+      class="floating-shape"
+      style="
+        bottom: 20%;
+        right: 10%;
+        width: 150px;
+        height: 150px;
+        background: radial-gradient(
+          circle,
+          rgba(16, 185, 129, 0.15) 0%,
+          transparent 70%
+        );
+        border-radius: 50%;
+        animation-delay: 2s;
+      "
+    ></div>
+
+    <!-- MAIN APP WRAPPER -->
+    <div id="app-wrapper">
+      <!-- Sidebar Overlay -->
+      <div
+        class="sidebar-overlay"
+        id="sidebar-overlay"
+        onclick="SidebarModule.closeSidebar()"
+      ></div>
+
+      <!-- Sidebar -->
+      <aside class="sidebar" id="sidebar">
+        <div class="logo">
+          <i class="ph ph-squares-four"></i>
+          NexusAdmin
+        </div>
+        <ul class="nav-links">
+          <li class="nav-item">
+            <a
+              href="#"
+              class="nav-link active"
+              onclick="NavigationModule.navigate('dashboard', this)"
+            >
+              <i class="ph ph-chart-line-up"></i>
+              Dashboard
+            </a>
+          </li>
+          <li class="nav-item">
+            <a
+              href="#"
+              class="nav-link"
+              onclick="NavigationModule.navigate('calendar', this)"
+            >
+              <i class="ph ph-calendar"></i>
+              Calendar
+            </a>
+          </li>
+          <li class="nav-item">
+            <a
+              href="#"
+              class="nav-link"
+              onclick="NavigationModule.navigate('customers', this)"
+            >
+              <i class="ph ph-users"></i>
+              Customers
+            </a>
+          </li>
+          <li class="nav-item">
+            <a
+              href="#"
+              class="nav-link"
+              onclick="NavigationModule.navigate('orders', this)"
+            >
+              <i class="ph ph-shopping-cart"></i>
+              Orders
+            </a>
+          </li>
+          <li class="nav-item">
+            <a
+              href="#"
+              class="nav-link"
+              onclick="NavigationModule.navigate('tasks', this)"
+            >
+              <i class="ph ph-kanban"></i>
+              Tasks
+            </a>
+          </li>
+          <!-- Help AI Link -->
+          <li class="nav-item">
+            <a
+              href="#"
+              class="nav-link"
+              onclick="NavigationModule.navigate('help-ai', this)"
+            >
+              <i class="ph ph-robot"></i>
+              Help AI
+            </a>
+          </li>
+          <!-- New Reports Link -->
+          <li class="nav-item">
+            <a
+              href="#"
+              class="nav-link"
+              onclick="NavigationModule.navigate('reports', this)"
+            >
+              <i class="ph ph-file-text"></i>
+              Reports
+            </a>
+          </li>
+          <li class="nav-item">
+            <a
+              href="#"
+              class="nav-link"
+              onclick="NavigationModule.navigate('settings', this)"
+            >
+              <i class="ph ph-gear"></i>
+              Settings
+            </a>
+          </li>
+        </ul>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <div class="header">
+          <div class="header-left">
+            <button
+              class="mobile-menu-btn"
+              onclick="SidebarModule.toggleSidebar()"
+            >
+              <i class="ph ph-list"></i>
+            </button>
+            <h1 id="page-title">Dashboard Overview</h1>
+          </div>
+          <!-- Clock Widget -->
+          <div class="clock-widget" id="clock-widget">
+            <span id="live-clock">00:00:00</span>
+            <span id="live-date" style="font-size:11px;color:var(--text-muted);"></span>
+          </div>
+          <div class="header-right">
+            <!-- Connection Status Indicator -->
+            <div id="connection-status" class="connection-status online" 
+                 title="Click to test connection"
+                 onclick="FlipkartModule.testAPIConnection()"
+                 style="cursor: pointer;">
+              <i class="ph ph-wifi-high"></i>
+              <span>Online</span>
+            </div>
+
+            <!-- Live Ticker -->
+            <div class="live-ticker" id="live-stats-container">
+              <div class="live-stat">
+                <span class="live-stat-label">Live Sales</span>
+                <span class="live-stat-value" id="live-sales-value"
+                  >$124,500</span
+                >
+              </div>
+              <div
+                class="live-stat"
+                style="border-left: 1px solid var(--border); padding-left: 16px"
+              >
+                <span class="live-stat-label">Live Revenue</span>
+                <span class="live-stat-value" id="live-revenue-value"
+                  >$3,450</span
+                >
+              </div>
+              <div class="live-indicator"></div>
+            </div>
+
+            <!-- Global Search -->
+            <div class="global-search-wrap" id="global-search-wrap" style="display:none">
+              <i class="ph ph-magnifying-glass"></i>
+              <input type="text" id="global-search-input" placeholder="Search orders, customers..." oninput="SearchModule.search(this.value)" />
+              <button onclick="SearchModule.close()"><i class="ph ph-x"></i></button>
+              <div class="search-results" id="search-results"></div>
+            </div>
+            <button class="header-icon-btn" onclick="SearchModule.open()" title="Search (Ctrl+K)"><i class="ph ph-magnifying-glass"></i></button>
+
+            <!-- Notification Bell -->
+            <div class="notif-wrap" id="notif-wrap">
+              <button class="header-icon-btn" onclick="NotifModule.toggle()" title="Notifications">
+                <i class="ph ph-bell"></i>
+                <span class="notif-badge" id="notif-badge">3</span>
+              </button>
+              <div class="notif-dropdown" id="notif-dropdown">
+                <div class="notif-header">
+                  <span>Notifications</span>
+                  <button onclick="NotifModule.clearAll()" style="background:none;border:none;color:var(--primary);font-size:12px;cursor:pointer;">Clear all</button>
+                </div>
+                <div id="notif-list"></div>
+              </div>
+            </div>
+
+            <!-- Live Mode Toggle -->
+            <button
+              class="live-toggle-btn"
+              onclick="FlipkartModule.toggleLiveMode(this)"
+            >
+              <i class="ph ph-broadcast"></i> Live Mode
+            </button>
+
+            <!-- Flipkart Sync Button -->
+            <button
+              class="btn-flipkart"
+              onclick="FlipkartModule.sync()"
+              id="btn-sync-flipkart"
+            >
+              <img
+                src="https://upload.wikimedia.org/wikipedia/en/thumb/4/41/Flag_of_India.svg/20px-Flag_of_India.svg.png"
+                onerror="
+                  this.style.display = 'none';
+                  this.nextElementSibling.style.display = 'inline-block';
+                "
+                alt="Flipkart Logo"
+                style="display: none"
+              />
+              <i
+                class="ph ph-arrows-clockwise"
+                style="color: var(--primary)"
+              ></i>
+              Sync
+            </button>
+
+            <div class="user-profile" onclick="toggleUserMenu()">
+              <span id="user-name-display">Welcome, Admin</span>
+              <div class="avatar">AD</div>
+              <i class="ph ph-caret-down" style="font-size: 12px; margin-left: 4px;"></i>
+              
+              <!-- User Dropdown Menu -->
+              <div class="user-dropdown" id="user-dropdown">
+                <div class="user-dropdown-header">
+                  <div class="avatar" style="width: 48px; height: 48px; font-size: 18px;">AD</div>
+                  <div style="margin-left: 12px;">
+                    <div style="font-weight: 600; font-size: 14px;" id="dropdown-user-name">Admin User</div>
+                    <div style="font-size: 12px; color: var(--text-muted);" id="dropdown-user-email">admin@example.com</div>
+                  </div>
+                </div>
+                <div class="user-dropdown-divider"></div>
+                <a href="#" class="user-dropdown-item" onclick="NavigationModule.navigate('settings', this); toggleUserMenu(); return false;">
+                  <i class="ph ph-gear"></i>
+                  <span>Settings</span>
+                </a>
+                <a href="#" class="user-dropdown-item" onclick="NavigationModule.navigate('help-ai', this); toggleUserMenu(); return false;">
+                  <i class="ph ph-question"></i>
+                  <span>Help & Support</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW 1: DASHBOARD ANALYTICS -->
+        <div id="view-dashboard" class="view-section active-view">
+          <!-- Recent Activity Feed -->
+          <div class="activity-feed" id="activity-feed"></div>
+          <!-- Dashboard Widgets Row -->
+          <div class="widgets-row">
+            <div class="widget-card" id="weather-widget">
+              <div class="widget-icon">🌤️</div>
+              <div><div class="widget-value" id="weather-temp">--°C</div><div class="widget-label" id="weather-city">Loading...</div></div>
+            </div>
+            <div class="widget-card">
+              <div class="widget-icon">🎯</div>
+              <div style="flex:1">
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                  <span class="widget-label">Monthly Goal</span>
+                  <span class="widget-value" id="goal-pct">0%</span>
+                </div>
+                <div class="goal-bar"><div class="goal-fill" id="goal-fill"></div></div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Target: ₹5,00,000</div>
+              </div>
+            </div>
+            <div class="widget-card">
+              <div class="widget-icon">⏱️</div>
+              <div><div class="widget-value" id="session-timer">00:00</div><div class="widget-label">Session Time</div></div>
+            </div>
+            <div class="widget-card">
+              <div class="widget-icon">💾</div>
+              <div><div class="widget-value" id="autosave-status">Saved</div><div class="widget-label">Auto-save</div></div>
+            </div>
+          </div>
+          <!-- Quick Stats -->
+          <div class="stats-grid">
+            <div class="card stat-card">
+              <div class="icon"><i class="ph ph-currency-inr"></i></div>
+              <div class="stat-value" id="stat-revenue">INR 124,500</div>
+              <div class="stat-label">Total Revenue</div>
+            </div>
+            <div class="card stat-card">
+              <div class="icon"><i class="ph ph-shopping-bag"></i></div>
+              <div class="stat-value" id="stat-sales">3,450</div>
+              <div class="stat-label">Total Orders</div>
+            </div>
+            <div class="card stat-card">
+              <div class="icon"><i class="ph ph-trend-up"></i></div>
+              <div class="stat-value">+12.5%</div>
+              <div class="stat-label">Growth Rate</div>
+            </div>
+            <div class="card stat-card">
+              <div class="icon"><i class="ph ph-users-three"></i></div>
+              <div class="stat-value" id="stat-customers">1,205</div>
+              <div class="stat-label">Total Customers</div>
+            </div>
+          </div>
+
+          <!-- Charts Row -->
+          <div class="charts-container">
+            <!-- Line Graph -->
+            <div class="chart-card">
+              <div class="section-header">
+                <h3 class="section-title">Sales Performance</h3>
+                <select>
+                  <option>2023-2024</option>
+                </select>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="salesLineChart"></canvas>
+              </div>
+            </div>
+
+            <!-- Revenue Graph (Updated with Selector) -->
+            <div class="chart-card">
+              <div class="section-header">
+                <h3 class="section-title">Revenue by Category</h3>
+                <select
+                  id="revenueChartType"
+                  onchange="ChartModule.changeRevenueChartType(this.value)"
+                >
+                  <option value="bar">Bar Chart</option>
+                  <option value="pie">Pie Chart</option>
+                  <option value="doughnut">Donut Chart</option>
+                  <option value="radar">Radar Chart</option>
+                  <option value="polarArea">Polar Area Chart</option>
+                  <option value="scatter">Scatter Chart</option>
+                </select>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="revenueChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dashboard Insights -->
+          <div class="dashboard-insights">
+            <div class="section-header insights-header">
+              <div>
+                <p class="section-eyebrow">Smart monitor</p>
+                <h3 class="section-title">Dashboard Insights</h3>
+              </div>
+              <div class="insight-actions">
+                <button class="btn-secondary" onclick="DashboardInsightsModule.refresh(true)">
+                  <i class="ph ph-arrows-clockwise"></i> Refresh
+                </button>
+                <button class="btn-primary" onclick="DashboardInsightsModule.exportSnapshot()">
+                  <i class="ph ph-download-simple"></i> Export Snapshot
+                </button>
+              </div>
+            </div>
+
+            <div class="insight-summary-grid" id="insight-summary-grid">
+              <div class="insight-mini-card loading-skeleton"></div>
+              <div class="insight-mini-card loading-skeleton"></div>
+              <div class="insight-mini-card loading-skeleton"></div>
+              <div class="insight-mini-card loading-skeleton"></div>
+            </div>
+
+            <div class="insight-detail-grid">
+              <div class="insight-panel">
+                <div class="insight-panel-header">
+                  <div>
+                    <p class="section-eyebrow">Fulfillment</p>
+                    <h4>Order Pipeline</h4>
+                  </div>
+                  <i class="ph ph-truck"></i>
+                </div>
+                <div id="order-pipeline-list" class="pipeline-list"></div>
+              </div>
+
+              <div class="insight-panel">
+                <div class="insight-panel-header">
+                  <div>
+                    <p class="section-eyebrow">Merchandising</p>
+                    <h4>Top Products</h4>
+                  </div>
+                  <i class="ph ph-star"></i>
+                </div>
+                <div id="top-products-list" class="top-products-list"></div>
+              </div>
+
+              <div class="insight-panel">
+                <div class="insight-panel-header">
+                  <div>
+                    <p class="section-eyebrow">Next steps</p>
+                    <h4>Recommended Actions</h4>
+                  </div>
+                  <i class="ph ph-lightning"></i>
+                </div>
+                <div id="dashboard-actions-list" class="dashboard-actions-list"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW: CALENDAR -->
+        <div id="view-calendar" class="view-section">
+          <div class="calendar-card">
+            <div class="calendar-header">
+              <div class="calendar-title" id="cal-month-year">January 2024</div>
+              <div class="calendar-nav">
+                <button class="cal-btn" onclick="CalendarModule.prevMonth()">
+                  <i class="ph ph-caret-left"></i>
+                </button>
+                <button class="cal-btn" onclick="CalendarModule.today()">
+                  Today
+                </button>
+                <button class="cal-btn" onclick="CalendarModule.nextMonth()">
+                  <i class="ph ph-caret-right"></i>
+                </button>
+              </div>
+            </div>
+            <div class="calendar-grid">
+              <div class="weekday-label">Sun</div>
+              <div class="weekday-label">Mon</div>
+              <div class="weekday-label">Tue</div>
+              <div class="weekday-label">Wed</div>
+              <div class="weekday-label">Thu</div>
+              <div class="weekday-label">Fri</div>
+              <div class="weekday-label">Sat</div>
+            </div>
+            <div class="calendar-grid" id="calendar-days"></div>
+          </div>
+          <!-- Upcoming Events -->
+          <div class="upcoming-events" id="upcoming-events"></div>
+        </div>
+
+        <!-- VIEW 2: KANBAN BOARD -->
+        <div id="view-tasks" class="view-section kanban-section">
+          <div class="section-header">
+            <h3 class="section-title">Project Tasks</h3>
+            <button class="btn-primary" onclick="KanbanApp.addTask()">
+              + Add Task
+            </button>
+          </div>
+
+          <div class="kanban-board">
+            <!-- To Do Column -->
+            <div
+              class="kanban-column"
+              id="todo"
+              ondrop="KanbanApp.drop(event)"
+              ondragover="KanbanApp.allowDrop(event)"
+            >
+              <div class="column-header todo">
+                <span class="column-title">To Do</span>
+                <span class="task-count">3</span>
+              </div>
+
+              <div
+                class="kanban-card"
+                draggable="true"
+                ondragstart="KanbanApp.drag(event)"
+                id="task-1"
+              >
+                <div class="card-header-row">
+                  <span class="task-tag tag-marketing">Marketing</span>
+                  <div class="card-actions">
+                    <button
+                      class="btn-action-sm"
+                      onclick="KanbanApp.openEditModal('task-1')"
+                    >
+                      <i class="ph ph-pencil-simple"></i>
+                    </button>
+                    <button
+                      class="btn-action-sm delete"
+                      onclick="KanbanApp.deleteTask('task-1')"
+                    >
+                      <i class="ph ph-trash"></i>
+                    </button>
+                  </div>
+                </div>
+                <h4 class="task-title">Q3 SEO Analysis</h4>
+                <div class="task-footer">
+                  <span><i class="ph ph-clock"></i> 2 days left</span>
+                  <div
+                    class="avatar"
+                    style="width: 20px; height: 20px; font-size: 10px"
+                  >
+                    JD
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- In Progress Column -->
+            <div
+              class="kanban-column"
+              id="inprogress"
+              ondrop="KanbanApp.drop(event)"
+              ondragover="KanbanApp.allowDrop(event)"
+            >
+              <div class="column-header progress">
+                <span class="column-title">In Progress</span>
+                <span class="task-count">1</span>
+              </div>
+
+              <div
+                class="kanban-card"
+                draggable="true"
+                ondragstart="KanbanApp.drag(event)"
+                id="task-4"
+              >
+                <div class="card-header-row">
+                  <span class="task-tag tag-dev">Development</span>
+                  <div class="card-actions">
+                    <button
+                      class="btn-action-sm"
+                      onclick="KanbanApp.openEditModal('task-4')"
+                    >
+                      <i class="ph ph-pencil-simple"></i>
+                    </button>
+                    <button
+                      class="btn-action-sm delete"
+                      onclick="KanbanApp.deleteTask('task-4')"
+                    >
+                      <i class="ph ph-trash"></i>
+                    </button>
+                  </div>
+                </div>
+                <h4 class="task-title">Database Migration</h4>
+                <div class="task-footer">
+                  <span><i class="ph ph-clock"></i> Due today</span>
+                  <div
+                    class="avatar"
+                    style="width: 20px; height: 20px; font-size: 10px"
+                  >
+                    LK
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Done Column -->
+            <div
+              class="kanban-column"
+              id="done"
+              ondrop="KanbanApp.drop(event)"
+              ondragover="KanbanApp.allowDrop(event)"
+            >
+              <div class="column-header done">
+                <span class="column-title">Done</span>
+                <span class="task-count">1</span>
+              </div>
+              <div
+                class="kanban-card"
+                draggable="true"
+                ondragstart="KanbanApp.drag(event)"
+                id="task-6"
+              >
+                <div class="card-header-row">
+                  <span class="task-tag tag-design">Design</span>
+                  <div class="card-actions">
+                    <button
+                      class="btn-action-sm"
+                      onclick="KanbanApp.openEditModal('task-6')"
+                    >
+                      <i class="ph ph-pencil-simple"></i>
+                    </button>
+                    <button
+                      class="btn-action-sm delete"
+                      onclick="KanbanApp.deleteTask('task-6')"
+                    >
+                      <i class="ph ph-trash"></i>
+                    </button>
+                  </div>
+                </div>
+                <h4 class="task-title">Logo Redesign</h4>
+                <div class="task-footer">
+                  <span><i class="ph ph-check-circle"></i> Completed</span>
+                  <div
+                    class="avatar"
+                    style="width: 20px; height: 20px; font-size: 10px"
+                  >
+                    AS
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW 3: CUSTOMERS -->
+        <div id="view-customers" class="view-section">
+          <div class="section-header">
+            <h3 class="section-title">All Customers</h3>
+            <div style="display:flex;gap:8px;align-items:center">
+              <div class="table-search-wrap"><i class="ph ph-magnifying-glass"></i><input type="text" placeholder="Search customers..." oninput="CustomerModule.filterTable(this.value)" /></div>
+              <button class="btn-primary" onclick="CustomerModule.openModal()">+ Add Customer</button>
+            </div>
+          </div>
+
+          <div class="customers-table-container">
+            <table class="customers-table">
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>Email</th>
+                  <th>Status</th>
+                  <th>Joined</th>
+                  <th style="text-align: right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="customers-table-body">
+                <!-- Customer Rows Generated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- VIEW 4: SETTINGS -->
+        <div id="view-settings" class="view-section">
+          <div class="settings-container">
+            <!-- Appearance Card -->
+            <div class="settings-card">
+              <div class="settings-header"><h3>Appearance Settings</h3></div>
+              <div class="setting-item">
+                <div><div class="setting-label">Dark Mode</div><div style="font-size:12px;color:var(--text-muted)">Switch between light and dark themes</div></div>
+                <label class="switch"><input type="checkbox" onchange="ThemeModule.toggleDarkMode()" /><span class="slider"></span></label>
+              </div>
+              <div class="setting-item">
+                <div><div class="setting-label">Font Size</div><div style="font-size:12px;color:var(--text-muted)">Adjust text size across dashboard</div></div>
+                <select onchange="ThemeModule.setFontSize(this.value)" id="font-size-select" style="padding:8px 12px;border-radius:8px;">
+                  <option value="13px">Small</option>
+                  <option value="15px" selected>Medium</option>
+                  <option value="17px">Large</option>
+                </select>
+              </div>
+              <div class="setting-item">
+                <div><div class="setting-label">Compact Mode</div><div style="font-size:12px;color:var(--text-muted)">Denser layout with less spacing</div></div>
+                <label class="switch"><input type="checkbox" id="compact-toggle" onchange="ThemeModule.toggleCompact(this.checked)" /><span class="slider"></span></label>
+              </div>
+
+              <!-- Accent Color -->
+              <div class="setting-item">
+                <div>
+                  <div class="setting-label">Accent Color</div>
+                  <div style="font-size: 12px; color: var(--text-muted)">
+                    Choose your primary brand color
+                  </div>
+                </div>
+                <div class="color-picker-lg">
+                  <div
+                    class="theme-dot-lg active"
+                    style="background: #4f46e5"
+                    onclick="
+                      ThemeModule.setTheme(
+                        '#4F46E5',
+                        '#EEF2FF',
+                        'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)',
+                        this,
+                      )
+                    "
+                  ></div>
+                  <div
+                    class="theme-dot-lg"
+                    style="background: #10b981"
+                    onclick="
+                      ThemeModule.setTheme(
+                        '#10B981',
+                        '#ECFDF5',
+                        'linear-gradient(135deg, #34D399 0%, #10B981 100%)',
+                        this,
+                      )
+                    "
+                  ></div>
+                  <div
+                    class="theme-dot-lg"
+                    style="background: #f59e0b"
+                    onclick="
+                      ThemeModule.setTheme(
+                        '#F59E0B',
+                        '#FFFBEB',
+                        'linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%)',
+                        this,
+                      )
+                    "
+                  ></div>
+                  <div
+                    class="theme-dot-lg"
+                    style="background: #f43f5e"
+                    onclick="
+                      ThemeModule.setTheme(
+                        '#F43F5E',
+                        '#FFF1F2',
+                        'linear-gradient(135deg, #FB7185 0%, #E11D48 100%)',
+                        this,
+                      )
+                    "
+                  ></div>
+                  <!-- New Colors -->
+                  <div
+                    class="theme-dot-lg"
+                    style="background: #00e5ff"
+                    onclick="
+                      ThemeModule.setTheme(
+                        '#00E5FF',
+                        '#E0F7FA',
+                        'linear-gradient(135deg, #00E5FF 0%, #00B8D4 100%)',
+                        this,
+                      )
+                    "
+                  ></div>
+                  <div
+                    class="theme-dot-lg"
+                    style="background: #db2777"
+                    onclick="
+                      ThemeModule.setTheme(
+                        '#DB2777',
+                        '#FCE7F3',
+                        'linear-gradient(135deg, #DB2777 0%, #BE185D 100%)',
+                        this,
+                      )
+                    "
+                  ></div>
+                  <div
+                    class="theme-dot-lg"
+                    style="background: #7c3aed"
+                    onclick="
+                      ThemeModule.setTheme(
+                        '#7C3AED',
+                        '#F3E8FF',
+                        'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
+                        this,
+                      )
+                    "
+                  ></div>
+                  <div
+                    class="theme-dot-lg"
+                    style="background: #ea580c"
+                    onclick="
+                      ThemeModule.setTheme(
+                        '#EA580C',
+                        '#FFEDD5',
+                        'linear-gradient(135deg, #EA580C 0%, #C2410C 100%)',
+                        this,
+                      )
+                    "
+                  ></div>
+                  <div
+                    class="theme-dot-lg"
+                    style="background: #0d9488"
+                    onclick="
+                      ThemeModule.setTheme(
+                        '#0D9488',
+                        '#CCFBF1',
+                        'linear-gradient(135deg, #0D9488 0%, #0F766E 100%)',
+                        this,
+                      )
+                    "
+                  ></div>
+                  <div
+                    class="theme-dot-lg"
+                    style="background: #dc2626"
+                    onclick="
+                      ThemeModule.setTheme(
+                        '#DC2626',
+                        '#FEE2E2',
+                        'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)',
+                        this,
+                      )
+                    "
+                  ></div>
+                  <div
+                    class="theme-dot-lg"
+                    style="background: #65a30d"
+                    onclick="
+                      ThemeModule.setTheme(
+                        '#65A30D',
+                        '#ECFCCB',
+                        'linear-gradient(135deg, #65A30D 0%, #4D7C0F 100%)',
+                        this,
+                      )
+                    "
+                  ></div>
+                  <div
+                    class="theme-dot-lg"
+                    style="background: #0284c7"
+                    onclick="
+                      ThemeModule.setTheme(
+                        '#0284C7',
+                        '#E0F2FE',
+                        'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+                        this,
+                      )
+                    "
+                  ></div>
+                  <div
+                    class="theme-dot-lg"
+                    style="background: #2563eb"
+                    onclick="
+                      ThemeModule.setTheme(
+                        '#2563EB',
+                        '#DBEAFE',
+                        'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)',
+                        this,
+                      )
+                    "
+                  ></div>
+                  <div
+                    class="theme-dot-lg"
+                    style="background: #ca8a04"
+                    onclick="
+                      ThemeModule.setTheme(
+                        '#CA8A04',
+                        '#FEF9C3',
+                        'linear-gradient(135deg, #CA8A04 0%, #A16207 100%)',
+                        this,
+                      )
+                    "
+                  ></div>
+                  <div
+                    class="theme-dot-lg"
+                    style="background: #475569"
+                    onclick="
+                      ThemeModule.setTheme(
+                        '#475569',
+                        '#F1F5F9',
+                        'linear-gradient(135deg, #475569 0%, #334155 100%)',
+                        this,
+                      )
+                    "
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-card" style="border-color:rgba(239,68,68,0.3)">
+              <div class="settings-header"><h3 style="color:var(--danger)">Preference Management</h3></div>
+              <div class="setting-item">
+                <div><div class="setting-label">Reset Settings</div><div style="font-size:12px;color:var(--text-muted)">Reset all theme and preferences to default.</div></div>
+                <button class="btn-secondary" onclick="ThemeModule.resetAll()"><i class="ph ph-arrow-counter-clockwise"></i> Reset</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW 5: ORDERS (New) -->
+        <div id="view-orders" class="view-section">
+          <div class="section-header">
+            <h3 class="section-title">Order History</h3>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <select onchange="OrdersModule.filterByStatus(this.value)" style="padding:8px 12px;border-radius:10px;">
+                <option value="">All Status</option>
+                <option value="Pending">Pending</option>
+                <option value="Processing">Processing</option>
+                <option value="Shipped">Shipped</option>
+                <option value="Delivered">Delivered</option>
+              </select>
+              <div class="table-search-wrap"><i class="ph ph-magnifying-glass"></i><input type="text" placeholder="Search orders..." oninput="OrdersModule.filterTable(this.value)" /></div>
+              <button class="btn-secondary" onclick="OrdersModule.exportCSV()"><i class="ph ph-download-simple"></i> Export CSV</button>
+            </div>
+          </div>
+          <div class="customers-table-container">
+            <table class="customers-table">
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Customer</th>
+                  <th>Product Details</th>
+                  <th>Amount</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="orders-table-body">
+                <!-- Order Rows Generated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- VIEW 6: HELP AI (New) -->
+        <div id="view-help-ai" class="view-section">
+          <div class="section-header">
+            <h3 class="section-title">Flipkart AI Assistant</h3>
+          </div>
+          <div class="chat-container">
+            <!-- Smart Suggestions Bar (Fixed at top) -->
+            <div class="chat-suggestions-bar" id="chat-suggestions-bar">
+              <button class="suggestion-chip" onclick="ChatBotModule.sendSuggestion('What is my total revenue?')">
+                📊 Show revenue
+              </button>
+              <button class="suggestion-chip" onclick="ChatBotModule.sendSuggestion('Show my recent orders')">
+                📦 Recent orders
+              </button>
+              <button class="suggestion-chip" onclick="ChatBotModule.sendSuggestion('How many customers do I have?')">
+                👥 Customer count
+              </button>
+              <button class="suggestion-chip" onclick="ChatBotModule.sendSuggestion('What is the refund policy?')">
+                💰 Refund policy
+              </button>
+            </div>
+            <div id="chat-history" class="chat-history">
+              <!-- Messages will appear here -->
+            </div>
+            <div class="chat-input-area">
+              <input
+                type="text"
+                id="chat-input"
+                placeholder="Ask about orders, refunds, or returns..."
+                onkeypress="
+                  if (event.key === 'Enter') ChatBotModule.handleUserMessage();
+                "
+              />
+              <button
+                class="chat-send-btn"
+                onclick="ChatBotModule.handleUserMessage()"
+              >
+                <i class="ph ph-paper-plane-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW 7: REPORTS (New) -->
+        <div id="view-reports" class="view-section">
+          <div class="section-header">
+            <h3 class="section-title">Financial Reports</h3>
+          </div>
+          <!-- Content will be rendered by ReportModule.js -->
+          <div
+            id="reports-placeholder"
+            style="padding: 40px; text-align: center; color: var(--text-muted)"
+          >
+            <i
+              class="ph ph-chart-bar"
+              style="font-size: 48px; margin-bottom: 16px"
+            ></i>
+            <p>Loading reports...</p>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Modal: AI Settings -->
+    <div class="modal-overlay" id="aiSettingsModalOverlay">
+      <div class="modal-content" style="max-width: 450px">
+        <div class="modal-header">
+          <h3>AI Configuration</h3>
+          <button class="btn-action-sm" onclick="ChatBotModule.closeSettings()">
+            <i class="ph ph-x"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+            Configure your AI assistant settings. All data is stored locally in your browser.
+          </p>
+          
+          <!-- Voice Output Toggle -->
+          <div class="setting-item" style="margin-bottom: 20px;">
+            <div>
+              <div class="setting-label">Voice Responses</div>
+              <div style="font-size: 12px; color: var(--text-muted);">Enable text-to-speech for AI responses</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="voiceToggle" onchange="localStorage.setItem('nexus_voice_enabled', this.checked)" />
+              <span class="slider"></span>
+            </label>
+          </div>
+          
+          <label>Gemini API Key (Optional)</label>
+          <input
+            type="password"
+            id="geminiApiKey"
+            placeholder="AIwaSy..."
+            style="
+              width: 100%;
+              padding: 10px;
+              border-radius: 8px;
+              border: 1px solid var(--border);
+              background: var(--bg-body);
+              color: var(--text-main);
+              margin-bottom: 8px;
+            "
+          />
+          <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 12px;">
+            <i class="ph ph-info"></i> Without API key, the bot uses free AI with basic features.
+            <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: var(--primary)">
+              Get free Gemini key
+            </a>
+          </div>
+          
+          <!-- Feature List -->
+          <div style="background: var(--bg-body); padding: 12px; border-radius: 8px; font-size: 12px;">
+            <div style="font-weight: 600; margin-bottom: 8px; color: var(--primary);">✨ Available Features:</div>
+            <div style="color: var(--text-muted); line-height: 1.8;">
+              • 🎤 Voice input & output<br>
+              • 💾 Chat history save<br>
+              • 📥 Export conversations<br>
+              • 🎯 Smart suggestions<br>
+              • ⚡ Quick actions
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" onclick="ChatBotModule.closeSettings()">
+            Cancel
+          </button>
+          <button class="btn-primary" onclick="ChatBotModule.saveSettings()">
+            Save Settings
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Calendar Event -->
+    <div class="modal-overlay" id="calendarEventModalOverlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="eventModalTitle">Add Event</h3>
+          <button class="btn-action-sm" onclick="CalendarModule.closeModal()">
+            <i class="ph ph-x"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="eventId" />
+          <label>Event Title</label>
+          <input
+            type="text"
+            id="eventTitle"
+            placeholder="Meeting with Team"
+            maxlength="30"
+          />
+
+          <label>Date</label>
+          <input type="date" id="eventDate" />
+
+          <label>Description (Optional)</label>
+          <textarea
+            id="eventDescription"
+            placeholder="Add details..."
+            rows="3"
+            style="
+              width: 100%;
+              padding: 12px;
+              border: 1px solid var(--border);
+              border-radius: 12px;
+              background: var(--bg-body);
+              color: var(--text-main);
+              margin-bottom: 16px;
+              font-family: inherit;
+              resize: vertical;
+            "
+          ></textarea>
+
+          <label>Color</label>
+          <div class="event-color-options" id="eventColorOptions">
+            <div
+              class="event-color-option selected"
+              style="background: #4f46e5"
+              onclick="CalendarModule.selectColor(this, '#4f46e5')"
+            ></div>
+            <div
+              class="event-color-option"
+              style="background: #10b981"
+              onclick="CalendarModule.selectColor(this, '#10b981')"
+            ></div>
+            <div
+              class="event-color-option"
+              style="background: #f59e0b"
+              onclick="CalendarModule.selectColor(this, '#f59e0b')"
+            ></div>
+            <div
+              class="event-color-option"
+              style="background: #ef4444"
+              onclick="CalendarModule.selectColor(this, '#ef4444')"
+            ></div>
+            <div
+              class="event-color-option"
+              style="background: #64748b"
+              onclick="CalendarModule.selectColor(this, '#64748b')"
+            ></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            id="btnDeleteEvent"
+            class="btn-danger"
+            style="display: none"
+            onclick="CalendarModule.deleteEvent()"
+          >
+            Delete
+          </button>
+          <div class="modal-footer-right">
+            <button class="btn-secondary" onclick="CalendarModule.closeModal()">
+              Cancel
+            </button>
+            <button class="btn-primary" onclick="CalendarModule.saveEvent()">
+              Save Event
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Edit Task -->
+    <div class="modal-overlay" id="editModalOverlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Edit Task</h3>
+          <button class="btn-action-sm" onclick="KanbanApp.closeEditModal()">
+            <i class="ph ph-x"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <label>Task Title</label>
+          <input
+            type="text"
+            id="editTaskTitle"
+            placeholder="Enter task title"
+          />
+          <label>Category</label>
+          <select id="editTaskTag">
+            <option value="tag-marketing">Marketing</option>
+            <option value="tag-design">Design</option>
+            <option value="tag-dev">Development</option>
+          </select>
+          <input type="hidden" id="editTaskId" />
+        </div>
+        <div class="modal-footer" style="justify-content: flex-end; gap: 12px">
+          <button class="btn-secondary" onclick="KanbanApp.closeEditModal()">
+            Cancel
+          </button>
+          <button class="btn-primary" onclick="KanbanApp.saveEdit()">
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Customer (Add/Edit) -->
+    <div class="modal-overlay" id="customerModalOverlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="customerModalTitle">Add Customer</h3>
+          <button class="btn-action-sm" onclick="CustomerModule.closeModal()">
+            <i class="ph ph-x"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <label>Full Name</label>
+          <input type="text" id="custName" placeholder="e.g. John Doe" />
+
+          <label>Email Address</label>
+          <input
+            type="email"
+            id="custEmail"
+            placeholder="e.g. sharad@example.com"
+          />
+
+          <label>Status</label>
+          <select id="custStatus">
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+
+          <input type="hidden" id="custId" />
+        </div>
+        <div class="modal-footer">
+          <button
+            id="btnDeleteCustModal"
+            class="btn-danger"
+            style="display: none"
+            onclick="CustomerModule.deleteFromModal()"
+          >
+            Delete
+          </button>
+          <div class="modal-footer-right">
+            <button class="btn-secondary" onclick="CustomerModule.closeModal()">
+              Cancel
+            </button>
+            <button class="btn-primary" onclick="CustomerModule.saveCustomer()">
+              Save Customer
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Keyboard Shortcuts Modal -->
+    <div class="modal-overlay" id="shortcutsModal">
+      <div class="modal-content" style="max-width:480px">
+        <div class="modal-header"><h3>⌨️ Keyboard Shortcuts</h3><button class="btn-action-sm" onclick="document.getElementById('shortcutsModal').style.display='none'"><i class="ph ph-x"></i></button></div>
+        <div class="modal-body">
+          <div class="shortcut-list">
+            <div class="shortcut-item"><kbd>Ctrl</kbd>+<kbd>K</kbd><span>Open Search</span></div>
+            <div class="shortcut-item"><kbd>Esc</kbd><span>Close modals / Search</span></div>
+            <div class="shortcut-item"><kbd>?</kbd><span>Show this help</span></div>
+            <div class="shortcut-item"><kbd>Ctrl</kbd>+<kbd>D</kbd><span>Go to Dashboard</span></div>
+            <div class="shortcut-item"><kbd>Ctrl</kbd>+<kbd>O</kbd><span>Go to Orders</span></div>
+            <div class="shortcut-item"><kbd>Ctrl</kbd>+<kbd>U</kbd><span>Go to Customers</span></div>
+            <div class="shortcut-item"><kbd>Ctrl</kbd>+<kbd>T</kbd><span>Go to Tasks</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scroll to Top -->
+    <button class="scroll-top-btn" id="scroll-top-btn" onclick="document.querySelector('.main-content').scrollTo({top:0,behavior:'smooth'})" title="Scroll to top"><i class="ph ph-arrow-up"></i></button>
+
+    <script src="three-bg.js?v=2"></script>
+    <script src="script.js?v=6.1"></script>
+  </body>
+</html>
